@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const applicationController = require('../controllers/applicationController');
+ 
 
 // Đăng ký ứng tuyển cho công việc
 router.post('/apply', applicationController.applyForJob);
