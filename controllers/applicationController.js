@@ -6,7 +6,7 @@ const moment = require('moment');
 const uploadSingle = require('../middleware/uploadMiddleware');
 const streamifier = require('streamifier');
 
-// uploadFileToCloudinary - Hàm xử lý upload file lên Cloudinary
+ 
 const uploadFileToCloudinary = (buffer, originalname) => {
   return new Promise((resolve, reject) => {
     // Xử lý tên file - loại bỏ ký tự đặc biệt và khoảng trắng
@@ -188,11 +188,18 @@ exports.applyForJob = async (req, res) => {
 // Get applications by Job ID
 exports.getApplicationsByJob = async (req, res) => {
   try {
+     
+
+    // Lấy danh sách ứng viên cho công việc từ jobId
     const applications = await Application.find({ jobId: req.params.jobId })
-      .populate('userId', 'hoten email sdt');  // Populate thông tin người dùng
-    if (!applications || applications.length === 0) {
-      return res.status(404).json({ success: false, message: 'No applications found for this job' });
+      .populate('userId', 'hoten email sdt');
+
+    // Trường hợp không có ứng viên nào apply
+    if (applications.length === 0) {
+      return res.status(200).json({ success: true, data: [] });  // Trả về mảng rỗng thay vì lỗi
     }
+
+    // Trường hợp có ứng viên apply
     res.status(200).json({ success: true, data: applications });
   } catch (error) {
     console.error(error);
@@ -200,16 +207,24 @@ exports.getApplicationsByJob = async (req, res) => {
   }
 };
 
+
 // Get applications by User ID
  
 exports.getAllApply = async (req, res) => {
-    try {
+  try {
       const apply = await Application.find();
-      res.status(200).json({code:200, success: true, data:  apply });
-    } catch (error) {
+
+      
+      if (!apply || apply.length === 0) {
+          return res.status(200).json({ code: 200, success: true, data: [] });
+      }
+
+       
+      res.status(200).json({ code: 200, success: true, data: apply });
+  } catch (error) {
       console.error(error);
       res.status(500).json({ success: false, message: 'Server error' });
-    }
+  }
 };
 
 exports.deleteApply = async (req, res) => {
@@ -303,9 +318,9 @@ exports.getApplyById = async (req, res) => {
       .populate('userId', 'fullName email phone'); // Populate thông tin ứng viên
 
     if (!application) {
-      return res.status(404).json({
-        success: false,
-        message: 'Application not found',
+      return res.status(200).json({
+        success: true,
+        data: null, // Trả về null nếu không tìm thấy ứng viên
       });
     }
 
@@ -327,24 +342,27 @@ exports.getApplyById = async (req, res) => {
 // Get all applications by User ID
 exports.getApplyByUserId = async (req, res) => {
   try {
-    const { userId } = req.params; // Lấy User ID từ params
-    const applications = await Application.find({ userId })
-      .populate('jobId', 'title location salary deadline') // Populate thông tin công việc
-      .populate('userId', 'fullName email phone'); // Populate thông tin ứng viên
+    const { userId } = req.params;
 
-    if (!applications || applications.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'No applications found for this user',
+    // ✅ Kiểm tra trước khi query
+    if (!userId || userId === 'undefined') {
+      return res.status(400).json({
+        code: 400,
+        status: 'error',
+        message: 'Thiếu hoặc sai userId',
       });
     }
 
-    res.status(200).json({
+    const applications = await Application.find({ userId })
+      .populate('jobId', 'title location salary deadline')
+      .populate('userId', 'fullName email phone');
+
+    return res.status(200).json({
       success: true,
-      data: applications,
+      data: applications || [],
     });
   } catch (error) {
-    console.error(error);
+    console.error(error); // Nếu vẫn muốn ẩn log thì có thể xoá dòng này
     res.status(500).json({
       success: false,
       message: 'Server error',

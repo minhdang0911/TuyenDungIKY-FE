@@ -13,6 +13,7 @@ exports.createRole = async (req, res) => {
 };
 
 // Lấy danh sách tất cả roles
+// Lấy tất cả roles
 exports.getRoles = async (req, res) => {
   try {
     const roles = await Role.find();
@@ -26,10 +27,21 @@ exports.getRoles = async (req, res) => {
 exports.getRoleById = async (req, res) => {
   try {
     const role = await Role.findById(req.params.id);
+
+    // Nếu không có role, trả về mảng rỗng thay vì lỗi 404
     if (!role) {
-      return res.status(404).json({ message: 'Không tìm thấy role' });
+      return res.status(200).json({
+        code: 200,
+        status: 'success',
+        data: [], // Trả về mảng rỗng nếu không tìm thấy
+      });
     }
-    res.status(200).json(role);
+
+    res.status(200).json({
+      code: 200,
+      status: 'success',
+      data: role, // Trả về role nếu tìm thấy
+    });
   } catch (error) {
     res.status(500).json({ message: 'Lỗi khi lấy role theo ID', error: error.message });
   }

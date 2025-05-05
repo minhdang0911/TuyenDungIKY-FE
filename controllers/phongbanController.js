@@ -25,6 +25,16 @@ const createPhongban = async (req, res) => {
 const getAllPhongban = async (req, res) => {
   try {
     const phongbans = await Phongban.find();
+
+    // Nếu không có dữ liệu, trả về mảng rỗng thay vì lỗi
+    if (!phongbans || phongbans.length === 0) {
+      return res.status(200).json({
+        code: 200,
+        status: 'success',
+        data: [], // Trả về mảng rỗng nếu không có phòng ban nào
+      });
+    }
+
     res.status(200).json({
       code: 200,
       status: 'success',
@@ -43,13 +53,16 @@ const getAllPhongban = async (req, res) => {
 const getPhongbanById = async (req, res) => {
   try {
     const phongban = await Phongban.findById(req.params.id);
+
+    // Kiểm tra nếu không có phòng ban, trả về mảng rỗng thay vì lỗi
     if (!phongban) {
-      return res.status(404).json({
-        code: 404,
-        status: 'error',
-        message: 'Phòng ban không tồn tại',
+      return res.status(200).json({
+        code: 200,
+        status: 'success',
+        data: [], // Trả về mảng rỗng nếu không có phòng ban
       });
     }
+
     res.status(200).json({
       code: 200,
       status: 'success',

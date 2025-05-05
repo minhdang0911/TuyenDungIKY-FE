@@ -217,7 +217,7 @@ const register = async (req, res) => {
         email,
         gioitinh,
         ngaysinh,
-        role: new mongoose.Types.ObjectId("68071fc20e4cef267b5605e5"),
+        role: new mongoose.Types.ObjectId("6814358d4d95f34e1730558f"),
         avatar: avatarUrl,
         password: hashedPassword,
       });
@@ -250,9 +250,18 @@ const register = async (req, res) => {
   const getAllUsers = async (req, res) => {
     try {
       const users = await User.find()
-         .select('-password') // loại bỏ field password
+        .select('-password') // loại bỏ field password
         .populate('phongban_id', 'tenphong')
         .populate('role', 'tenRole');
+  
+      if (users.length === 0) {
+        return res.status(200).json({
+          code: 200,
+          status: 'success',
+          message: 'Không có người dùng nào',
+          data: [], // Trả về mảng rỗng nếu không có người dùng
+        });
+      }
   
       res.status(200).json({
         code: 200,
@@ -272,36 +281,41 @@ const register = async (req, res) => {
   // Lấy user theo Token
   const getUserByToken = async (req, res) => {
     try {
-        // Lấy id từ token
-        const userId = req.user.id;
-        
-        // Tìm người dùng bằng id từ token
-        const user = await User.findById(userId)
+      // Lấy id từ token
+      const userId = req.user.id;
+     
+      
+      // Tìm người dùng bằng id từ token
+      const user = await User.findById(userId)
         .select('-password')
-            .populate('phongban_id', 'tenphong')
-            .populate('role', 'tenRole');
-    
-        if (!user) {
-            return res.status(404).json({
-                code: 404,
-                status: 'error',
-                message: 'Không tìm thấy người dùng',
-            });
-        }
-    
-        res.status(200).json({
-            code: 200,
-            status: 'success',
-            data: user,
+        .populate('phongban_id', 'tenphong')
+        .populate('role', 'tenRole');
+  
+      // Nếu không tìm thấy người dùng, trả về mảng rỗng
+      if (!user) {
+        return res.status(200).json({
+          code: 200,
+          status: 'success',
+          data: [], // Mảng rỗng nếu không tìm thấy người dùng
         });
+      }
+  
+      // Trả về thông tin người dùng
+      res.status(200).json({
+        code: 200,
+        status: 'success',
+        data: user,
+      });
     } catch (err) {
-        res.status(500).json({
-            code: 500,
-            status: 'error',
-            message: err.message,
-        });
+      console.error('Lỗi khi tìm người dùng:', err.message); // Thêm log chi tiết lỗi
+      res.status(500).json({
+        code: 500,
+        status: 'error',
+        message: 'Đã có lỗi xảy ra khi lấy thông tin người dùng.',
+      });
     }
   };
+  ;
   
   // Cập nhật user
   
@@ -409,7 +423,65 @@ const register = async (req, res) => {
     }
   };
 
-   
+  
+  const changePassword = async (req, res) => {
+    try {
+      const userId = req.user.id; // Lấy từ token đã decode
+  
+      const { oldPassword, newPassword, confirmPassword } = req.body;
+      console.log(req.body)
+  
+      if (!oldPassword || !newPassword || !confirmPassword) {
+        return res.status(400).json({
+          code: 400,
+          status: 'error',
+          message: 'Vui lòng nhập đầy đủ mật khẩu cũ, mật khẩu mới và xác nhận mật khẩu.',
+        });
+      }
+  
+      if (newPassword !== confirmPassword) {
+        return res.status(400).json({
+          code: 400,
+          status: 'error',
+          message: 'Mật khẩu mới và xác nhận mật khẩu không khớp.',
+        });
+      }
+  
+      const user = await User.findById(userId);
+      if (!user) {
+        return res.status(404).json({
+          code: 404,
+          status: 'error',
+          message: 'Không tìm thấy người dùng.',
+        });
+      }
+  
+      const isMatch = await bcrypt.compare(oldPassword, user.password);
+      if (!isMatch) {
+        return res.status(400).json({
+          code: 400,
+          status: 'error',
+          message: 'Mật khẩu cũ không đúng.',
+        });
+      }
+  
+      user.password = await bcrypt.hash(newPassword, 10);
+      await user.save();
+  
+      res.status(200).json({
+        code: 200,
+        status: 'success',
+        message: 'Đổi mật khẩu thành công.',
+      });
+    } catch (err) {
+      console.error('Error in changePassword:', err);
+      res.status(500).json({
+        code: 500,
+        status: 'error',
+        message: 'Lỗi server: ' + err.message,
+      });
+    }
+  };
   
   // Xóa user
   const deleteUser = async (req, res) => {
@@ -537,10 +609,10 @@ const getUserByPhongBan = async (req, res) => {
     // Kiểm tra xem phòng ban có tồn tại không
     const phongban = await Phongban.findById(phongbanId);
     if (!phongban) {
-      return res.status(404).json({
-        code: 404,
-        status: 'error',
-        message: 'Phòng ban không tồn tại',
+      return res.status(200).json({
+        code: 200,
+        status: 'success',
+        data: [], // Mảng rỗng nếu phòng ban không tồn tại
       });
     }
 
@@ -549,18 +621,10 @@ const getUserByPhongBan = async (req, res) => {
       .select('-password') // Loại bỏ trường password
       .populate('phongban_id', 'tenphong');
 
-    if (users.length === 0) {
-      return res.status(404).json({
-        code: 404,
-        status: 'error',
-        message: 'Không có người dùng trong phòng ban này',
-      });
-    }
-
     res.status(200).json({
       code: 200,
       status: 'success',
-      data: users,
+      data: users.length > 0 ? users : [], // Mảng rỗng nếu không có người dùng trong phòng ban
     });
   } catch (err) {
     res.status(500).json({
@@ -573,34 +637,34 @@ const getUserByPhongBan = async (req, res) => {
 
  
 
-  const getUserById = async (req, res) => {
-    try {
-      const user = await User.findById(req.params.id)
-        .populate('phongban_id', 'tenphong')
-        .populate('role', 'name');
-  
-      if (!user) {
-        return res.status(404).json({
-          code: 404,
-          status: 'error',
-          message: 'Không tìm thấy người dùng',
-        });
-      }
-  
-      res.status(200).json({
+const getUserById = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id)
+      .populate('phongban_id', 'tenphong')
+      .populate('role', 'name');
+
+    if (!user) {
+      return res.status(200).json({
         code: 200,
         status: 'success',
-        data: user,
-      });
-    } catch (err) {
-      res.status(500).json({
-        code: 500,
-        status: 'error',
-        message: err.message,
+        data: [], // Mảng rỗng nếu không tìm thấy người dùng
       });
     }
-  };
- 
+
+    res.status(200).json({
+      code: 200,
+      status: 'success',
+      data: user,
+    });
+  } catch (err) {
+    res.status(500).json({
+      code: 500,
+      status: 'error',
+      message: err.message,
+    });
+  }
+};
+
 
  
  
@@ -614,5 +678,6 @@ module.exports = {
   getUserByPhongBan,
   getUserById,
   logoutUser,
-  register
+  register,
+  changePassword
 };

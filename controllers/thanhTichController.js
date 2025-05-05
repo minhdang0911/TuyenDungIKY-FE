@@ -81,7 +81,17 @@ const createThanhTich = async (req, res) => {
 // GET all ThanhTich
 const getAllThanhTich = async (req, res) => {
   try {
-    const thanhTichs = await ThanhTich.find().populate('nhanvien_id','hoten');
+    const thanhTichs = await ThanhTich.find().populate('nhanvien_id', 'hoten');
+
+    // Kiểm tra nếu không có dữ liệu, trả về mảng rỗng
+    if (!thanhTichs || thanhTichs.length === 0) {
+      return res.status(200).json({
+        code: 200,
+        status: 'success',
+        data: [], // Trả về mảng rỗng nếu không tìm thấy dữ liệu
+      });
+    }
+
     res.status(200).json({
       code: 200,
       status: 'success',
@@ -181,32 +191,33 @@ const deleteThanhTich = async (req, res) => {
 
 
 const getThanhTichById = async (req, res) => {
-    try {
-        const thanhTichList = await ThanhTich.find({ nhanvien_id: req.params.id });
+  try {
+    const thanhTichList = await ThanhTich.find({ nhanvien_id: req.params.id });
 
-        // In ra kết quả để kiểm tra
-        console.log("Kết quả tìm kiếm thành tích: ", thanhTichList);
+    // In ra kết quả để kiểm tra
+    console.log("Kết quả tìm kiếm thành tích: ", thanhTichList);
 
-        if (thanhTichList.length === 0) {
-            return res.status(404).json({
-                code: 404,
-                status: 'error',
-                message: 'Không tìm thấy thành tích cho nhân viên này.',
-            });
-        }
-
-        res.status(200).json({
-            code: 200,
-            status: 'success',
-            data: thanhTichList,
-        });
-    } catch (err) {
-        res.status(500).json({
-            code: 500,
-            status: 'error',
-            message: err.message,
-        });
+    // Kiểm tra nếu không có thành tích thì trả về mảng rỗng thay vì lỗi
+    if (!thanhTichList || thanhTichList.length === 0) {
+      return res.status(200).json({
+        code: 200,
+        status: 'success',
+        data: [], // Trả về mảng rỗng nếu không có thành tích
+      });
     }
+
+    res.status(200).json({
+      code: 200,
+      status: 'success',
+      data: thanhTichList,
+    });
+  } catch (err) {
+    res.status(500).json({
+      code: 500,
+      status: 'error',
+      message: err.message,
+    });
+  }
 };
 
 

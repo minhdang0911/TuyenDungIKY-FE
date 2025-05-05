@@ -10,7 +10,8 @@ const {
   getUserByPhongBan,
   getUserById,
   logoutUser,
-  register
+  register,
+  changePassword
 } = require('../controllers/userController');
 const { verifyToken, isAdmin } = require('../middleware/auth');
 router.get('/me', verifyToken,getUserByToken);
@@ -23,4 +24,5 @@ router.post('/login', loginUser);
 router.post('/logout',  logoutUser);
 router.post('/register',  register);
 router.get('/phongban/:phongbanId',getUserByPhongBan );
+router.post('/change-password', verifyToken, changePassword);
 module.exports = router;

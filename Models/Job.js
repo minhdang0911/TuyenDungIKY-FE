@@ -4,8 +4,9 @@ const mongoose = require('mongoose');
 const jobSchema = new mongoose.Schema({
   title: { type: String, required: true }, 
   description: { type: String, required: true }, 
-  minSalary: { type: String, required: true }, 
-  maxSalary: { type: String, required: true }, 
+  minSalary: { type: String },
+  maxSalary: { type: String },
+  salaryType: { type: String, enum: ['fixed', 'negotiable'], default: 'fixed' },  
   hinhanh: { type: [String] }, 
   time: { type: String, required: true }, 
   location: { type: String, required: true },  
