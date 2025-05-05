@@ -553,8 +553,10 @@ const register = async (req, res) => {
   
       res.cookie('token', token, {
         httpOnly: true,
-        sameSite: 'Strict',
-      });
+        sameSite: 'None',  // Cho phép gửi cookies giữa các domain khác nhau
+        secure: true,      // Cookies sẽ chỉ được gửi qua HTTPS
+    });
+    
   
       res.status(200).json({
         code: 200,

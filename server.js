@@ -19,10 +19,11 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 app.use(cors({
-  origin: '*',   
-  credentials: true,  
-}));
-
+    origin: function (origin, callback) {
+      callback(null, true);
+    },
+    credentials: true
+  }));
 
 // Routes
 app.use('/api/users', userRoutes);
