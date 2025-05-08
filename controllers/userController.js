@@ -8,9 +8,15 @@ const slugify = require('slugify');
 const moment = require('moment');
 require('dotenv').config();
 const mongoose = require('mongoose');
+const nodemailer = require('nodemailer');
 
 
 
+const emailJSServiceID = process.env.EMAILJS_SERVICE_ID;
+const emailJSTemplateID = process.env.EMAILJS_TEMPLATE_ID;
+const emailJSUserID = process.env.EMAILJS_USER_ID;
+
+console.log(emailJSServiceID,emailJSTemplateID,emailJSUserID)
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
@@ -553,10 +559,8 @@ const register = async (req, res) => {
   
       res.cookie('token', token, {
         httpOnly: true,
-        sameSite: 'None',  // Cho phép gửi cookies giữa các domain khác nhau
-        secure: true,      // Cookies sẽ chỉ được gửi qua HTTPS
-    });
-    
+        sameSite: 'Strict',
+      });
   
       res.status(200).json({
         code: 200,
@@ -668,7 +672,235 @@ const getUserById = async (req, res) => {
 };
 
 
- 
+const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({
+        code: 400,
+        status: 'error',
+        message: 'Vui lòng cung cấp email.',
+      });
+    }
+    
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({
+        code: 401,
+        status: 'error',
+        message: 'Email không tồn tại trong hệ thống.',
+      });
+    }
+    
+    const resetToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: '1h',
+    });
+    
+    const resetURL = `https://careers-iky-vn.vercel.app/reset-password/${resetToken}`;
+    
+    // Cấu hình transporter
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.GMAIL_USER,
+        pass: process.env.GMAIL_PASS,
+      },
+    });
+    
+    // Lấy tên công ty từ biến môi trường hoặc sử dụng mặc định
+    const companyName = process.env.COMPANY_NAME || 'Công ty Cổ Phần Công Nghệ Tiện Ích Thông Minh';
+    const companyLogo = process.env.COMPANY_LOGO || 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSk6i1YvxT8gFWyAwk3tW8MjzQJocD3SUZ64A&s';
+    const companyAddress = process.env.COMPANY_ADDRESS || 'Công ty Cổ Phần Công Nghệ Tiện Ích Thông Minh';
+    const companyPhone = process.env.COMPANY_PHONE || '(+84) 02 806 999';
+    const companyEmail = process.env.COMPANY_EMAIL || process.env.GMAIL_USER;
+    const companyWebsite = process.env.COMPANY_WEBSITE || 'https://iky.vn/';
+    
+    // Cấu hình nội dung email với thiết kế chuyên nghiệp
+    const mailOptions = {
+      from: `"${companyName}" <${process.env.GMAIL_USER}>`,
+      to: email,
+      subject: `[${companyName}] Khôi phục mật khẩu`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Khôi phục mật khẩu</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              line-height: 1.6;
+              color: #333333;
+              margin: 0;
+              padding: 0;
+            }
+            .container {
+              max-width: 600px;
+              margin: 0 auto;
+              padding: 20px;
+            }
+            .header {
+              background-color: #f8f8f8;
+              padding: 20px;
+              text-align: center;
+              border-bottom: 3px solid #2d8cff;
+            }
+            .logo {
+              max-height: 60px;
+              margin-bottom: 15px;
+            }
+            .content {
+              padding: 30px 20px;
+              background-color: #ffffff;
+            }
+            .button {
+              display: inline-block;
+              background-color: #2d8cff;
+              color: #ffffff !important;
+              text-decoration: none;
+              padding: 12px 25px;
+              border-radius: 4px;
+              margin: 20px 0;
+              font-weight: bold;
+            }
+            .footer {
+              background-color: #f8f8f8;
+              padding: 20px;
+              text-align: center;
+              font-size: 12px;
+              color: #666666;
+              border-top: 1px solid #dddddd;
+            }
+            .social-links {
+              margin: 15px 0;
+            }
+            .social-link {
+              display: inline-block;
+              margin: 0 5px;
+            }
+            hr {
+              border: none;
+              border-top: 1px solid #dddddd;
+              margin: 20px 0;
+            }
+            .warning {
+              font-size: 12px;
+              color: #999999;
+              margin-top: 20px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <img src="${companyLogo}" alt="${companyName}" class="logo">
+              <h2 style="margin: 0; color: #2d8cff;">${companyName}</h2>
+            </div>
+            
+            <div class="content">
+              <h2>Xin chào ${user.firstName || 'Quý khách'},</h2>
+              <p>Chúng tôi đã nhận được yêu cầu khôi phục mật khẩu cho tài khoản của bạn. Vui lòng nhấn vào nút bên dưới để tiến hành đặt lại mật khẩu:</p>
+              
+              <div style="text-align: center;">
+                <a href="${resetURL}" class="button">ĐẶT LẠI MẬT KHẨU</a>
+              </div>
+              
+             
+              
+              <p><strong>Lưu ý:</strong> Liên kết này sẽ hết hạn sau 1 giờ kể từ khi email được gửi.</p>
+              
+              <p>Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email này hoặc liên hệ với chúng tôi ngay để được hỗ trợ.</p>
+              
+              <hr>
+              
+              <p>Trân trọng,<br><strong>Đội ngũ Hỗ trợ ${companyName}</strong></p>
+            </div>
+            
+            <div class="footer">
+              <p><strong>${companyName}</strong></p>
+              <p>${companyAddress}</p>
+              <p>Điện thoại: ${companyPhone}}</p>
+              <p>Website: <a href="https://${companyWebsite}" style="color: #2d8cff;">${companyWebsite}</a></p>
+              
+              <div class="social-links">
+                <a href="https://www.facebook.com/tienichthongminh/" class="social-link">Facebook</a> |
+                
+              </div>
+              
+              <p class="warning">Email này được gửi tự động, vui lòng không trả lời. Nếu bạn cần hỗ trợ, vui lòng liên hệ với chúng tôi qua hotline.</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `,
+    };
+    
+    await transporter.sendMail(mailOptions);
+    
+    res.status(200).json({
+      code: 200,
+      status: 'success',
+      message: 'Một email khôi phục mật khẩu đã được gửi.',
+    });
+    
+  } catch (err) {
+    console.error('Error in forgotPassword:', err);
+    res.status(500).json({
+      code: 500,
+      status: 'error',
+      message: 'Lỗi server: ' + err.message,
+    });
+  }
+};
+const resetPassword = async (req, res) => {
+  try {
+    const { token } = req.params; // Token từ URL
+    const { newPassword } = req.body; // Mật khẩu mới từ form
+
+    if (!newPassword) {
+      return res.status(400).json({
+        code: 400,
+        status: 'error',
+        message: 'Vui lòng cung cấp mật khẩu mới.',
+      });
+    }
+
+    // Giải mã token để lấy userId
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.id;
+
+    // Tìm user theo ID
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        code: 404,
+        status: 'error',
+        message: 'User không tồn tại.',
+      });
+    }
+
+    // Cập nhật mật khẩu mới cho người dùng
+    user.password = await bcrypt.hash(newPassword, 10); // Băm mật khẩu trước khi lưu
+    await user.save();
+
+    res.status(200).json({
+      code: 200,
+      status: 'success',
+      message: 'Mật khẩu đã được cập nhật thành công.',
+    });
+
+  } catch (err) {
+    console.error('Error in resetPassword:', err);
+    res.status(500).json({
+      code: 500,
+      status: 'error',
+      message: 'Lỗi server: ' + err.message,
+    });
+  }
+};
+
  
 module.exports = {
   createUser,
@@ -681,5 +913,7 @@ module.exports = {
   getUserById,
   logoutUser,
   register,
-  changePassword
+  changePassword,
+  forgotPassword,
+  resetPassword
 };
