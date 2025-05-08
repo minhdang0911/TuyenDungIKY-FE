@@ -9,7 +9,7 @@ const {
 } = require('../controllers/phongbanController');
 const { verifyToken, isAdmin } = require('../middleware/auth');
 
-router.post('/',verifyToken,isAdmin, createPhongban);
+router.post('/', createPhongban);
 router.get('/', getAllPhongban);
 router.get('/:id', getPhongbanById);
 router.put('/:id', updatePhongban);
