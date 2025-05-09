@@ -559,8 +559,10 @@ const register = async (req, res) => {
   
       res.cookie('token', token, {
         httpOnly: true,
-        sameSite: 'Strict',
+        secure: true,        
+        sameSite: 'None'       
       });
+      
   
       res.status(200).json({
         code: 200,
