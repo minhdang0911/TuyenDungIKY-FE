@@ -18,12 +18,19 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));   
 app.use(cookieParser());
 
+// app.use(cors({
+//     origin: function (origin, callback) {
+//       callback(null, true);
+//     },
+//     credentials: true
+//   }));
+
+
 app.use(cors({
-    origin: function (origin, callback) {
-      callback(null, true);
-    },
-    credentials: true
-  }));
+  origin: 'https://careers-iky-vn.vercel.app',
+  credentials: true
+}));
+
 
 // Routes
 app.use('/api/users', userRoutes);
