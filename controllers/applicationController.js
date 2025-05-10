@@ -212,7 +212,7 @@ exports.getApplicationsByJob = async (req, res) => {
  
 exports.getAllApply = async (req, res) => {
   try {
-      const apply = await Application.find();
+      const apply = await Application.find().populate('jobId', 'title location salary deadline')  ;
 
       
       if (!apply || apply.length === 0) {

@@ -256,16 +256,16 @@ const register = async (req, res) => {
   const getAllUsers = async (req, res) => {
     try {
       const users = await User.find()
-        .select('-password') // loại bỏ field password
-        .populate('phongban_id', 'tenphong')
-        .populate('role', 'tenRole');
+        .select('-password')
+        .populate('phongban_id', 'tenphong -_id') // Chỉ lấy tenphong, loại _id
+        .populate('role', 'tenRole -_id');        // Chỉ lấy tenRole, loại _id
   
       if (users.length === 0) {
         return res.status(200).json({
           code: 200,
           status: 'success',
           message: 'Không có người dùng nào',
-          data: [], // Trả về mảng rỗng nếu không có người dùng
+          data: [],
         });
       }
   
@@ -284,36 +284,32 @@ const register = async (req, res) => {
   };
   
   
+  
   // Lấy user theo Token
   const getUserByToken = async (req, res) => {
     try {
-      // Lấy id từ token
       const userId = req.user.id;
-     
-      
-      // Tìm người dùng bằng id từ token
+  
       const user = await User.findById(userId)
         .select('-password')
-        .populate('phongban_id', 'tenphong')
-        .populate('role', 'tenRole');
+        .populate('phongban_id', 'tenphong -_id') // loại bỏ _id
+        .populate('role', 'tenRole -_id');        // loại bỏ _id
   
-      // Nếu không tìm thấy người dùng, trả về mảng rỗng
       if (!user) {
         return res.status(200).json({
           code: 200,
           status: 'success',
-          data: [], // Mảng rỗng nếu không tìm thấy người dùng
+          data: [],
         });
       }
   
-      // Trả về thông tin người dùng
       res.status(200).json({
         code: 200,
         status: 'success',
         data: user,
       });
     } catch (err) {
-      console.error('Lỗi khi tìm người dùng:', err.message); // Thêm log chi tiết lỗi
+      console.error('Lỗi khi tìm người dùng:', err.message);
       res.status(500).json({
         code: 500,
         status: 'error',
@@ -321,6 +317,7 @@ const register = async (req, res) => {
       });
     }
   };
+  
   ;
   
   // Cập nhật user
@@ -559,10 +556,8 @@ const register = async (req, res) => {
   
       res.cookie('token', token, {
         httpOnly: true,
-        secure: true,        
-        sameSite: 'None'       
+        sameSite: 'Strict',
       });
-      
   
       res.status(200).json({
         code: 200,
@@ -648,14 +643,15 @@ const getUserByPhongBan = async (req, res) => {
 const getUserById = async (req, res) => {
   try {
     const user = await User.findById(req.params.id)
-      .populate('phongban_id', 'tenphong')
-      .populate('role', 'name');
+      .select('-password') // nếu cần ẩn password
+      .populate('phongban_id', 'tenphong -_id') // chỉ lấy tenphong
+      .populate('role', 'tenRole -_id');        // chỉ lấy tenRole
 
     if (!user) {
       return res.status(200).json({
         code: 200,
         status: 'success',
-        data: [], // Mảng rỗng nếu không tìm thấy người dùng
+        data: [],
       });
     }
 
@@ -699,7 +695,7 @@ const forgotPassword = async (req, res) => {
       expiresIn: '1h',
     });
     
-    const resetURL = `https://careers-iky-vn.vercel.app/reset-password/${resetToken}`;
+    const resetURL = `http://localhost:3000/reset-password/${resetToken}`;
     
     // Cấu hình transporter
     const transporter = nodemailer.createTransport({
@@ -716,7 +712,7 @@ const forgotPassword = async (req, res) => {
     const companyAddress = process.env.COMPANY_ADDRESS || 'Công ty Cổ Phần Công Nghệ Tiện Ích Thông Minh';
     const companyPhone = process.env.COMPANY_PHONE || '(+84) 02 806 999';
     const companyEmail = process.env.COMPANY_EMAIL || process.env.GMAIL_USER;
-    const companyWebsite = process.env.COMPANY_WEBSITE || 'https://iky.vn/';
+    const companyWebsite = process.env.COMPANY_WEBSITE || 'iky.vn';
     
     // Cấu hình nội dung email với thiết kế chuyên nghiệp
     const mailOptions = {
@@ -731,107 +727,227 @@ const forgotPassword = async (req, res) => {
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>Khôi phục mật khẩu</title>
           <style>
+            @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+            
             body {
-              font-family: Arial, sans-serif;
+              font-family: 'Roboto', Arial, sans-serif;
               line-height: 1.6;
               color: #333333;
               margin: 0;
               padding: 0;
+              background-color: #f5f5f5;
             }
+            
             .container {
               max-width: 600px;
               margin: 0 auto;
-              padding: 20px;
+              background-color: #ffffff;
+              border-radius: 8px;
+              overflow: hidden;
+              box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
             }
+            
             .header {
-              background-color: #f8f8f8;
-              padding: 20px;
+              background: linear-gradient(135deg, #0062E6, #33A8FF);
+              padding: 30px 20px;
               text-align: center;
-              border-bottom: 3px solid #2d8cff;
             }
+            
+            .logo-container {
+              background-color: white;
+              display: inline-block;
+              border-radius: 50%;
+              padding: 10px;
+              margin-bottom: 15px;
+              box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            }
+            
             .logo {
               max-height: 60px;
-              margin-bottom: 15px;
             }
+            
+            .company-name {
+              margin: 10px 0 0;
+              color: #ffffff;
+              font-size: 24px;
+              font-weight: 600;
+              letter-spacing: 0.5px;
+            }
+            
             .content {
-              padding: 30px 20px;
+              padding: 40px 30px;
               background-color: #ffffff;
             }
+            
+            .greeting {
+              font-size: 22px;
+              font-weight: 500;
+              color: #222222;
+              margin-top: 0;
+            }
+            
+            .message {
+              font-size: 16px;
+              color: #555555;
+              margin-bottom: 30px;
+            }
+            
+            .button-container {
+              text-align: center;
+              margin: 35px 0;
+            }
+            
             .button {
               display: inline-block;
-              background-color: #2d8cff;
+              background: linear-gradient(to right, #0062E6, #33A8FF);
               color: #ffffff !important;
               text-decoration: none;
-              padding: 12px 25px;
-              border-radius: 4px;
-              margin: 20px 0;
+              padding: 14px 32px;
+              border-radius: 50px;
               font-weight: bold;
+              font-size: 16px;
+              letter-spacing: 0.5px;
+              box-shadow: 0 5px 15px rgba(0, 98, 230, 0.3);
+              transition: all 0.3s;
             }
+            
+            .button:hover {
+              transform: translateY(-2px);
+              box-shadow: 0 7px 20px rgba(0, 98, 230, 0.4);
+            }
+            
+            .notice {
+              margin: 30px 0;
+              padding: 15px;
+              background-color: #f8f9fa;
+              border-left: 4px solid #0062E6;
+              border-radius: 4px;
+            }
+            
+            .notice-title {
+              font-weight: 600;
+              color: #0062E6;
+              margin: 0 0 5px 0;
+            }
+            
+            .notice-content {
+              margin: 0;
+              color: #555555;
+            }
+            
+            .divider {
+              border: none;
+              border-top: 1px solid #e9ecef;
+              margin: 30px 0;
+            }
+            
+            .signature {
+              font-size: 16px;
+              color: #555555;
+            }
+            
+            .signature-name {
+              font-weight: 600;
+              color: #333333;
+            }
+            
             .footer {
-              background-color: #f8f8f8;
-              padding: 20px;
+              background-color: #f8f9fa;
+              padding: 30px 20px;
               text-align: center;
-              font-size: 12px;
-              color: #666666;
-              border-top: 1px solid #dddddd;
+              border-top: 1px solid #e9ecef;
             }
+            
+            .company-info {
+              margin-bottom: 20px;
+            }
+            
+            .company-info p {
+              margin: 5px 0;
+              color: #6c757d;
+              font-size: 14px;
+            }
+            
+            .company-info strong {
+              color: #495057;
+            }
+            
             .social-links {
-              margin: 15px 0;
+              margin: 20px 0;
             }
+            
             .social-link {
               display: inline-block;
-              margin: 0 5px;
+              margin: 0 8px;
+              color: #0062E6 !important;
+              text-decoration: none;
+              font-weight: 500;
             }
-            hr {
-              border: none;
-              border-top: 1px solid #dddddd;
-              margin: 20px 0;
-            }
+            
             .warning {
               font-size: 12px;
-              color: #999999;
-              margin-top: 20px;
+              color: #6c757d;
+              margin-top: 30px;
+              padding-top: 15px;
+              border-top: 1px solid #e9ecef;
+            }
+            
+            /* Responsive styling */
+            @media only screen and (max-width: 480px) {
+              .content {
+                padding: 30px 20px;
+              }
+              
+              .button {
+                padding: 12px 25px;
+                font-size: 14px;
+              }
             }
           </style>
         </head>
         <body>
           <div class="container">
             <div class="header">
-              <img src="${companyLogo}" alt="${companyName}" class="logo">
-              <h2 style="margin: 0; color: #2d8cff;">${companyName}</h2>
+              <div class="logo-container">
+                <img src="${companyLogo}" alt="${companyName}" class="logo">
+              </div>
+              <h1 class="company-name">${companyName}</h1>
             </div>
             
             <div class="content">
-              <h2>Xin chào ${user.firstName || 'Quý khách'},</h2>
-              <p>Chúng tôi đã nhận được yêu cầu khôi phục mật khẩu cho tài khoản của bạn. Vui lòng nhấn vào nút bên dưới để tiến hành đặt lại mật khẩu:</p>
+              <h2 class="greeting">Xin chào ${user.firstName || 'Quý khách'},</h2>
+              <p class="message">Chúng tôi đã nhận được yêu cầu khôi phục mật khẩu cho tài khoản của bạn. Để tiếp tục quá trình này, vui lòng nhấn vào nút bên dưới để đặt lại mật khẩu của bạn:</p>
               
-              <div style="text-align: center;">
+              <div class="button-container">
                 <a href="${resetURL}" class="button">ĐẶT LẠI MẬT KHẨU</a>
               </div>
               
-             
+              <div class="notice">
+                <p class="notice-title">Lưu ý quan trọng:</p>
+                <p class="notice-content">Liên kết này sẽ hết hạn sau 1 giờ kể từ khi email được gửi. Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email này hoặc liên hệ với chúng tôi ngay lập tức để được hỗ trợ.</p>
+              </div>
               
-              <p><strong>Lưu ý:</strong> Liên kết này sẽ hết hạn sau 1 giờ kể từ khi email được gửi.</p>
+              <hr class="divider">
               
-              <p>Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email này hoặc liên hệ với chúng tôi ngay để được hỗ trợ.</p>
-              
-              <hr>
-              
-              <p>Trân trọng,<br><strong>Đội ngũ Hỗ trợ ${companyName}</strong></p>
+              <p class="signature">Trân trọng,<br><span class="signature-name">Đội ngũ Hỗ trợ ${companyName}</span></p>
             </div>
             
             <div class="footer">
-              <p><strong>${companyName}</strong></p>
-              <p>${companyAddress}</p>
-              <p>Điện thoại: ${companyPhone}}</p>
-              <p>Website: <a href="https://${companyWebsite}" style="color: #2d8cff;">${companyWebsite}</a></p>
+              <div class="company-info">
+                <p><strong>${companyName}</strong></p>
+                <p>${companyAddress}</p>
+                <p>Điện thoại: ${companyPhone}</p>
+               
+                <p>Website: <a href="https://${companyWebsite}" style="color: #0062E6;">${companyWebsite}</a></p>
+              </div>
               
               <div class="social-links">
                 <a href="https://www.facebook.com/tienichthongminh/" class="social-link">Facebook</a> |
-                
+                <a href="https://www.linkedin.com/company/" class="social-link">LinkedIn</a> |
+                <a href="https://www.youtube.com/channel/" class="social-link">YouTube</a>
               </div>
               
-              <p class="warning">Email này được gửi tự động, vui lòng không trả lời. Nếu bạn cần hỗ trợ, vui lòng liên hệ với chúng tôi qua hotline.</p>
+              <p class="warning">Email này được gửi tự động, vui lòng không trả lời. Nếu bạn cần hỗ trợ, vui lòng liên hệ với chúng tôi qua hotline hoặc email ${companyEmail}.</p>
             </div>
           </div>
         </body>
